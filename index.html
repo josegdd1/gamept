@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RPG de Texto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Hermandad: El juego</title>
   <style>
     body {
       background: black;
@@ -50,12 +50,13 @@
       border-radius: 8px;
       width: 60px;
       height: 60px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <h1>🌟 RPG de Texto ASCII 🌟</h1>
+  <h1>La Hermandad: El juego</h1>
   <pre id="mapa"></pre>
   <div id="info"></div>
   <button onclick="reiniciarJuego()">Reiniciar</button>
@@ -73,16 +74,16 @@
     const mapaBase = [
       "############",
       "#          #",
-      "#    C     #",
-      "#   M      #",
+      "#    z     #",
       "#          #",
       "#          #",
-      "#     J    #",
+      "#          #",
+      "#          #",
       "############"
     ];
 
     let mapa = [];
-    let jugador = { x: 6, y: 6, simbolo: "J", vida: 3 };
+    let jugador = { x: 6, y: 6, simbolo: "o", vida: 3 };
 
     const datosGuardados = localStorage.getItem("rpg_ascii");
     if (datosGuardados) {
@@ -114,27 +115,15 @@
       const nuevoX = jugador.x + dx;
       const nuevoY = jugador.y + dy;
 
-      if (mapa[nuevoY][nuevoX] === "#" ) {
-        // pared
-        return;
+      // Verificar paredes
+      if (mapa[nuevoY][nuevoX] === "#") {
+        return; // no puede pasar muro
       }
 
-      // Interacciones
-      const casilla = mapa[nuevoY][nuevoX];
-
-      if (casilla === "C") {
-        alert("¡Encontraste un cofre! Vida +1");
-        jugador.vida = Math.min(jugador.vida + 1, 5);
-        mapa[nuevoY] = reemplazarCaracter(mapa[nuevoY], nuevoX, " ");
-      } else if (casilla === "M") {
-        alert("¡Un monstruo te atacó! Vida -1");
-        jugador.vida -= 1;
-        if (jugador.vida <= 0) {
-          alert("Has muerto. Juego terminado.");
-          reiniciarJuego();
-          return;
-        }
-        mapa[nuevoY] = reemplazarCaracter(mapa[nuevoY], nuevoX, " ");
+      // Si es NPC "z", mostrar diálogo y no mover
+      if (mapa[nuevoY][nuevoX] === "z") {
+        alert("Zaid: Mano");
+        return;
       }
 
       jugador.x = nuevoX;
@@ -143,12 +132,8 @@
       renderizarMapa();
     }
 
-    function reemplazarCaracter(str, index, nuevoChar) {
-      return str.substring(0, index) + nuevoChar + str.substring(index + 1);
-    }
-
     function reiniciarJuego() {
-      jugador = { x: 6, y: 6, simbolo: "J", vida: 3 };
+      jugador = { x: 6, y: 6, simbolo: "o", vida: 3 };
       mapa = [...mapaBase];
       guardar();
       renderizarMapa();
@@ -158,7 +143,7 @@
       localStorage.setItem("rpg_ascii", JSON.stringify({ jugador, mapa }));
     }
 
-    // Controles con teclado
+    // Control con teclado
     document.addEventListener("keydown", e => {
       switch (e.key.toLowerCase()) {
         case "w":
@@ -180,7 +165,6 @@
       }
     });
 
-    // Inicializamos el juego
     renderizarMapa();
   </script>
 </body>

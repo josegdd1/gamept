@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPG de Texto</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    pre {
+      font-size: 20px;
+      line-height: 1.2;
+      user-select: none;
+    }
+    #info {
+      margin-top: 1rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      color: black;
+      border: none;
+      border-radius: 5px;
+    }
+    #controles {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #controles > div {
+      display: flex;
+      gap: 1rem;
+      margin: 0.5rem 0;
+    }
+    #controles button {
+      font-size: 1.5rem;
+      background: white;
+      color: black;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      width: 60px;
+      height: 60px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌟 RPG de Texto ASCII 🌟</h1>
+  <pre id="mapa"></pre>
+  <div id="info"></div>
+  <button onclick="reiniciarJuego()">Reiniciar</button>
+
+  <div id="controles">
+    <button onclick="mover(0, -1)">↑</button>
+    <div>
+      <button onclick="mover(-1, 0)">←</button>
+      <button onclick="mover(1, 0)">→</button>
+    </div>
+    <button onclick="mover(0, 1)">↓</button>
+  </div>
+
+  <script>
+    const mapaBase = [
+      "############",
+      "#          #",
+      "#    C     #",
+      "#   M      #",
+      "#          #",
+      "#          #",
+      "#     J    #",
+      "############"
+    ];
+
+    let mapa = [];
+    let jugador = { x: 6, y: 6, simbolo: "J", vida: 3 };
+
+    const datosGuardados = localStorage.getItem("rpg_ascii");
+    if (datosGuardados) {
+      const datos = JSON.parse(datosGuardados);
+      jugador = datos.jugador;
+      mapa = datos.mapa;
+    } else {
+      mapa = [...mapaBase];
+    }
+
+    function renderizarMapa() {
+      let mapaRender = "";
+      for (let y = 0; y < mapa.length; y++) {
+        let fila = "";
+        for (let x = 0; x < mapa[y].length; x++) {
+          if (x === jugador.x && y === jugador.y) {
+            fila += jugador.simbolo;
+          } else {
+            fila += mapa[y][x];
+          }
+        }
+        mapaRender += fila + "\n";
+      }
+      document.getElementById("mapa").textContent = mapaRender;
+      document.getElementById("info").textContent = `Vida: ${jugador.vida}`;
+    }
+
+    function mover(dx, dy) {
+      const nuevoX = jugador.x + dx;
+      const nuevoY = jugador.y + dy;
+
+      if (mapa[nuevoY][nuevoX] === "#" ) {
+        // pared
+        return;
+      }
+
+      // Interacciones
+      const casilla = mapa[nuevoY][nuevoX];
+
+      if (casilla === "C") {
+        alert("¡Encontraste un cofre! Vida +1");
+        jugador.vida = Math.min(jugador.vida + 1, 5);
+        mapa[nuevoY] = reemplazarCaracter(mapa[nuevoY], nuevoX, " ");
+      } else if (casilla === "M") {
+        alert("¡Un monstruo te atacó! Vida -1");
+        jugador.vida -= 1;
+        if (jugador.vida <= 0) {
+          alert("Has muerto. Juego terminado.");
+          reiniciarJuego();
+          return;
+        }
+        mapa[nuevoY] = reemplazarCaracter(mapa[nuevoY], nuevoX, " ");
+      }
+
+      jugador.x = nuevoX;
+      jugador.y = nuevoY;
+      guardar();
+      renderizarMapa();
+    }
+
+    function reemplazarCaracter(str, index, nuevoChar) {
+      return str.substring(0, index) + nuevoChar + str.substring(index + 1);
+    }
+
+    function reiniciarJuego() {
+      jugador = { x: 6, y: 6, simbolo: "J", vida: 3 };
+      mapa = [...mapaBase];
+      guardar();
+      renderizarMapa();
+    }
+
+    function guardar() {
+      localStorage.setItem("rpg_ascii", JSON.stringify({ jugador, mapa }));
+    }
+
+    // Controles con teclado
+    document.addEventListener("keydown", e => {
+      switch (e.key.toLowerCase()) {
+        case "w":
+        case "arrowup":
+          mover(0, -1);
+          break;
+        case "a":
+        case "arrowleft":
+          mover(-1, 0);
+          break;
+        case "s":
+        case "arrowdown":
+          mover(0, 1);
+          break;
+        case "d":
+        case "arrowright":
+          mover(1, 0);
+          break;
+      }
+    });
+
+    // Inicializamos el juego
+    renderizarMapa();
+  </script>
+</body>
+</html>

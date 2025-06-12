@@ -1,171 +1,189 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>La Hermandad: El juego</title>
-  <style>
-    body {
-      background: black;
-      color: white;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1rem;
-    }
-    pre {
-      font-size: 20px;
-      line-height: 1.2;
-      user-select: none;
-    }
-    #info {
-      margin-top: 1rem;
-    }
-    button {
-      margin-top: 1rem;
-      padding: 0.5rem 1rem;
-      background: white;
-      color: black;
-      border: none;
-      border-radius: 5px;
-    }
-    #controles {
-      margin-top: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #controles > div {
-      display: flex;
-      gap: 1rem;
-      margin: 0.5rem 0;
-    }
-    #controles button {
-      font-size: 1.5rem;
-      background: white;
-      color: black;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      width: 60px;
-      height: 60px;
-      cursor: pointer;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>La Hermandad: El juego</title>
+<style>
+  body {
+    background-color: black;
+    color: white;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    height: 100vh;
+    margin: 0;
+    padding: 10px;
+  }
+  #mapa {
+    white-space: pre;
+    font-size: 24px;
+    line-height: 1.2;
+    user-select: none;
+    margin-bottom: 20px;
+  }
+  #dialogo {
+    background: #222;
+    border: 1px solid #555;
+    padding: 10px;
+    width: 90vw;
+    max-width: 600px;
+    min-height: 80px;
+    margin-bottom: 20px;
+    white-space: pre-line;
+  }
+  .botones-mov {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    grid-template-rows: repeat(3, 50px);
+    gap: 5px;
+    margin-bottom: 20px;
+  }
+  .botones-mov button {
+    font-size: 18px;
+    background: #111;
+    color: white;
+    border: 1px solid #444;
+    cursor: pointer;
+    user-select: none;
+  }
+  .botones-mov button:active {
+    background: #555;
+  }
+</style>
 </head>
 <body>
 
-  <h1>La Hermandad: El juego</h1>
-  <pre id="mapa"></pre>
-  <div id="info"></div>
-  <button onclick="reiniciarJuego()">Reiniciar</button>
+<h1>La Hermandad: El juego</h1>
 
-  <div id="controles">
-    <button onclick="mover(0, -1)">↑</button>
-    <div>
-      <button onclick="mover(-1, 0)">←</button>
-      <button onclick="mover(1, 0)">→</button>
-    </div>
-    <button onclick="mover(0, 1)">↓</button>
-  </div>
+<div id="mapa"></div>
+<div id="dialogo"></div>
 
-  <script>
-    const mapaBase = [
-      "############",
-      "#          #",
-      "#    z     #",
-      "#          #",
-      "#          #",
-      "#          #",
-      "#          #",
-      "############"
-    ];
+<div class="botones-mov">
+  <button onclick="mover(-1, -1)" disabled></button>
+  <button onclick="mover(0, -1)">↑</button>
+  <button onclick="mover(1, -1)" disabled></button>
 
-    let mapa = [];
-    let jugador = { x: 6, y: 6, simbolo: "o", vida: 3 };
+  <button onclick="mover(-1, 0)">←</button>
+  <button onclick="mover(0, 0)" disabled>o</button>
+  <button onclick="mover(1, 0)">→</button>
 
-    const datosGuardados = localStorage.getItem("rpg_ascii");
-    if (datosGuardados) {
-      const datos = JSON.parse(datosGuardados);
-      jugador = datos.jugador;
-      mapa = datos.mapa;
-    } else {
-      mapa = [...mapaBase];
-    }
+  <button onclick="mover(-1, 1)" disabled></button>
+  <button onclick="mover(0, 1)">↓</button>
+  <button onclick="mover(1, 1)" disabled></button>
+</div>
 
-    function renderizarMapa() {
-      let mapaRender = "";
-      for (let y = 0; y < mapa.length; y++) {
-        let fila = "";
-        for (let x = 0; x < mapa[y].length; x++) {
-          if (x === jugador.x && y === jugador.y) {
-            fila += jugador.simbolo;
-          } else {
-            fila += mapa[y][x];
-          }
+<script>
+  // Mapa inicial: '.' suelo, '#' pared, 'z' NPC Zaid
+  let mapa = [
+    "#####",
+    "#...#",
+    "#.z.#",
+    "#...#",
+    "#####"
+  ];
+
+  // Cargar jugador o iniciar en el centro del mapa
+  let jugador = JSON.parse(localStorage.getItem('jugador')) || {
+    x: 2,
+    y: 3,
+    simbolo: "o",
+    tieneArmas: false,
+    zaidDialogIndex: 0
+  };
+
+  const mapaDiv = document.getElementById("mapa");
+  const dialogoDiv = document.getElementById("dialogo");
+
+  function renderizarMapa() {
+    let salida = "";
+    for (let y = 0; y < mapa.length; y++) {
+      for (let x = 0; x < mapa[y].length; x++) {
+        if (x === jugador.x && y === jugador.y) {
+          salida += jugador.simbolo;
+        } else {
+          salida += mapa[y][x];
         }
-        mapaRender += fila + "\n";
       }
-      document.getElementById("mapa").textContent = mapaRender;
-      document.getElementById("info").textContent = `Vida: ${jugador.vida}`;
+      salida += "\n";
     }
+    mapaDiv.textContent = salida;
+  }
 
-    function mover(dx, dy) {
-      const nuevoX = jugador.x + dx;
-      const nuevoY = jugador.y + dy;
+  // Función para mostrar diálogos en secuencia con promesas para esperar el OK
+  function mostrarDialogo(lineas) {
+    return new Promise((resolve) => {
+      let index = 0;
+      dialogoDiv.textContent = lineas[index];
 
-      // Verificar paredes
-      if (mapa[nuevoY][nuevoX] === "#") {
-        return; // no puede pasar muro
+      function siguiente() {
+        index++;
+        if (index < lineas.length) {
+          dialogoDiv.textContent = lineas[index];
+        } else {
+          dialogoDiv.textContent = "";
+          dialogoDiv.removeEventListener('click', siguiente);
+          resolve();
+        }
       }
 
-      // Si es NPC "z", mostrar diálogo y no mover
-      if (mapa[nuevoY][nuevoX] === "z") {
-        alert("Zaid: Mano");
-        return;
-      }
-
-      jugador.x = nuevoX;
-      jugador.y = nuevoY;
-      guardar();
-      renderizarMapa();
-    }
-
-    function reiniciarJuego() {
-      jugador = { x: 6, y: 6, simbolo: "o", vida: 3 };
-      mapa = [...mapaBase];
-      guardar();
-      renderizarMapa();
-    }
-
-    function guardar() {
-      localStorage.setItem("rpg_ascii", JSON.stringify({ jugador, mapa }));
-    }
-
-    // Control con teclado
-    document.addEventListener("keydown", e => {
-      switch (e.key.toLowerCase()) {
-        case "w":
-        case "arrowup":
-          mover(0, -1);
-          break;
-        case "a":
-        case "arrowleft":
-          mover(-1, 0);
-          break;
-        case "s":
-        case "arrowdown":
-          mover(0, 1);
-          break;
-        case "d":
-        case "arrowright":
-          mover(1, 0);
-          break;
-      }
+      dialogoDiv.addEventListener('click', siguiente);
     });
+  }
 
+  // Función guardar estado
+  function guardar() {
+    localStorage.setItem('jugador', JSON.stringify(jugador));
+  }
+
+  // Diálogos que cambian tras recibir armas
+  const zaidDialogsAfter = [
+    "Mano ya te di todo",
+    "Que quieres mano",
+    "Mano dejame",
+    "Mamaguevo"
+  ];
+
+  function mover(dx, dy) {
+    const nuevoX = jugador.x + dx;
+    const nuevoY = jugador.y + dy;
+
+    if (mapa[nuevoY][nuevoX] === "#") return;
+
+    if (mapa[nuevoY][nuevoX] === "z") {
+      if (!jugador.tieneArmas) {
+        mostrarDialogo([
+          "Zaid: Mano, toma esto.",
+          "*Has recibido una espada, un escudo y a Luis Mendez*",
+          "La espada sirve para atacar a los cabros.\nAtaque: 1-5\nAtaque crítico: 10\nEl ataque será aleatorio, y el ataque crítico tiene una probabilidad menor de ocurrir",
+          "El escudo te permite defenderte de los cabros.\nDefensa: 1-10\nLa defensa del escudo será aleatoria.",
+          "Luis Mendez.\nDaño: 0-50\nLuis Mendez reirá con un \"Je\". El daño infligido dependerá de lo largo que sea el \"Je\"."
+        ]).then(() => {
+          jugador.tieneArmas = true;
+          jugador.simbolo = "^o[)";
+          jugador.zaidDialogIndex = 0;
+          guardar();
+          renderizarMapa();
+        });
+      } else {
+        alert("Zaid: " + zaidDialogsAfter[jugador.zaidDialogIndex]);
+        jugador.zaidDialogIndex = (jugador.zaidDialogIndex + 1) % zaidDialogsAfter.length;
+        guardar();
+      }
+      return;
+    }
+
+    jugador.x = nuevoX;
+    jugador.y = nuevoY;
+    guardar();
     renderizarMapa();
-  </script>
+  }
+
+  // Renderizar mapa inicial
+  renderizarMapa();
+</script>
+
 </body>
 </html>

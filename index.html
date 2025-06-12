@@ -30,7 +30,7 @@
     padding: 10px;
     width: 90vw;
     max-width: 600px;
-    min-height: 80px;
+    min-height: 100px;
     margin-bottom: 20px;
     white-space: pre-line;
   }
@@ -52,14 +52,30 @@
   .botones-mov button:active {
     background: #555;
   }
+  #btn-reiniciar {
+    background: #222;
+    border: 1px solid #555;
+    color: white;
+    padding: 8px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 15px;
+  }
+  #vidas {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
 </style>
 </head>
 <body>
 
 <h1>La Hermandad: El juego</h1>
 
+<div id="vidas"></div>
 <div id="mapa"></div>
 <div id="dialogo"></div>
+
+<button id="btn-reiniciar">Reiniciar Juego</button>
 
 <div class="botones-mov">
   <button onclick="mover(-1, -1)" disabled></button>
@@ -67,7 +83,7 @@
   <button onclick="mover(1, -1)" disabled></button>
 
   <button onclick="mover(-1, 0)">←</button>
-  <button onclick="mover(0, 0)" disabled>o</button>
+  <button disabled>o</button>
   <button onclick="mover(1, 0)">→</button>
 
   <button onclick="mover(-1, 1)" disabled></button>
@@ -76,7 +92,7 @@
 </div>
 
 <script>
-  // Mapa más grande: '.' suelo, '#' pared, 'z' NPC Zaid
+  // Mapa: cuadrado 9x7 con paredes #
   let mapa = [
     "#########",
     "#.......#",
@@ -84,20 +100,44 @@
     "#...z...#",
     "#.......#",
     "#.......#",
-    "#.......#"
+    "#########"
   ];
 
-  // Cargar jugador o iniciar en el centro abajo
-  let jugador = JSON.parse(localStorage.getItem('jugador')) || {
+  // Estado inicial del jugador
+  let jugador = {
     x: 4,
     y: 5,
     simbolo: "o",
-    tieneArmas: false,
-    zaidDialogIndex: 0
+    vidas: 3,
+    zaidDialogIndex: 0,
+    armasEntregadas: false,
+    dialogoEntregaIndex: 0
   };
 
   const mapaDiv = document.getElementById("mapa");
   const dialogoDiv = document.getElementById("dialogo");
+  const vidasDiv = document.getElementById("vidas");
+  const btnReiniciar = document.getElementById("btn-reiniciar");
+
+  // Diálogos de entrega armas (se muestran en secuencia)
+  const entregaArmasDialogs = [
+    "Zaid: Mano, toma esto.\n*Has recibido una espada, un escudo y a Luis Méndez*",
+    "La espada sirve para atacar a los cabros.\nAtaque: 1-5\nAtaque crítico: 10\nEl ataque será aleatorio, y el ataque crítico tiene una probabilidad menor de ocurrir.",
+    "El escudo te permite defenderte de los cabros.\nDefensa: 1-10\nLa defensa del escudo será aleatoria.",
+    "Luis Méndez.\nDaño: 0-50\nLuis Méndez reirá con un \"Je\".\nEl daño infligido dependerá de lo largo que sea el \"Je\"."
+  ];
+
+  // Diálogos rotativos de Zaid luego de entregar armas
+  const zaidDialogs = [
+    "Mano ya te di todo",
+    "Que quieres mano",
+    "Mano dejame",
+    "Mamaguevo"
+  ];
+
+  function mostrarDialogo(texto) {
+    dialogoDiv.textContent = texto;
+  }
 
   function renderizarMapa() {
     let salida = "";
@@ -112,77 +152,63 @@
       salida += "\n";
     }
     mapaDiv.textContent = salida;
+    vidasDiv.textContent = `Vidas: ${jugador.vidas}`;
   }
 
-  // Función para mostrar diálogos en secuencia con promesas para esperar el OK
-  function mostrarDialogo(lineas) {
-    return new Promise((resolve) => {
-      let index = 0;
-      dialogoDiv.textContent = lineas[index];
-
-      function siguiente() {
-        index++;
-        if (index < lineas.length) {
-          dialogoDiv.textContent = lineas[index];
-        } else {
-          dialogoDiv.textContent = "";
-          dialogoDiv.removeEventListener('click', siguiente);
-          resolve();
-        }
+  function hablarConZaid() {
+    if (!jugador.armasEntregadas) {
+      // Mostrar diálogos secuenciales de entrega
+      mostrarDialogo(entregaArmasDialogs[jugador.dialogoEntregaIndex]);
+      jugador.dialogoEntregaIndex++;
+      if (jugador.dialogoEntregaIndex >= entregaArmasDialogs.length) {
+        jugador.armasEntregadas = true;
+        jugador.dialogoEntregaIndex = 0;
+        jugador.simbolo = "o"; // Aquí dejamos que siga siendo "o" sin armas visibles
       }
-
-      dialogoDiv.addEventListener('click', siguiente);
-    });
+    } else {
+      // Diálogos rotativos normales
+      mostrarDialogo("Zaid: " + zaidDialogs[jugador.zaidDialogIndex]);
+      jugador.zaidDialogIndex = (jugador.zaidDialogIndex + 1) % zaidDialogs.length;
+    }
   }
-
-  // Función guardar estado
-  function guardar() {
-    localStorage.setItem('jugador', JSON.stringify(jugador));
-  }
-
-  // Diálogos que cambian tras recibir armas
-  const zaidDialogsAfter = [
-    "Mano ya te di todo",
-    "Que quieres mano",
-    "Mano dejame",
-    "Mamaguevo"
-  ];
 
   function mover(dx, dy) {
     const nuevoX = jugador.x + dx;
     const nuevoY = jugador.y + dy;
 
+    // Validar límites y paredes
+    if (nuevoY < 0 || nuevoY >= mapa.length) return;
+    if (nuevoX < 0 || nuevoX >= mapa[0].length) return;
     if (mapa[nuevoY][nuevoX] === "#") return;
 
+    // Interacción con NPC Zaid
     if (mapa[nuevoY][nuevoX] === "z") {
-      if (!jugador.tieneArmas) {
-        mostrarDialogo([
-          "Zaid: Mano, toma esto.",
-          "*Has recibido una espada, un escudo y a Luis Mendez*",
-          "La espada sirve para atacar a los cabros.\nAtaque: 1-5\nAtaque crítico: 10\nEl ataque será aleatorio, y el ataque crítico tiene una probabilidad menor de ocurrir",
-          "El escudo te permite defenderte de los cabros.\nDefensa: 1-10\nLa defensa del escudo será aleatoria.",
-          "Luis Mendez.\nDaño: 0-50\nLuis Mendez reirá con un \"Je\". El daño infligido dependerá de lo largo que sea el \"Je\"."
-        ]).then(() => {
-          jugador.tieneArmas = true;
-          jugador.zaidDialogIndex = 0;
-          guardar();
-          renderizarMapa();
-        });
-      } else {
-        alert("Zaid: " + zaidDialogsAfter[jugador.zaidDialogIndex]);
-        jugador.zaidDialogIndex = (jugador.zaidDialogIndex + 1) % zaidDialogsAfter.length;
-        guardar();
-      }
+      hablarConZaid();
       return;
     }
 
+    // Mover jugador
     jugador.x = nuevoX;
     jugador.y = nuevoY;
-    guardar();
+    mostrarDialogo("");
     renderizarMapa();
   }
 
-  // Renderizar mapa inicial
+  btnReiniciar.onclick = () => {
+    jugador = {
+      x: 4,
+      y: 5,
+      simbolo: "o",
+      vidas: 3,
+      zaidDialogIndex: 0,
+      armasEntregadas: false,
+      dialogoEntregaIndex: 0
+    };
+    mostrarDialogo("");
+    renderizarMapa();
+  };
+
+  // Renderizar inicial
   renderizarMapa();
 </script>
 

@@ -207,7 +207,20 @@
   }
 
   // Interacción con puerta D
-  
+  if (destino === "D") {
+  if (jugador.sala === 0) {
+    jugador.sala = 1;
+    jugador.x = 5;
+    jugador.y = 6;
+  } else {
+    jugador.sala = 0;
+    jugador.x = 5;
+    jugador.y = 1;
+  }
+  renderizarMapa();
+  mostrarDialogo("Has cambiado de sala.");
+  return;
+  }
 
   jugador.x = nuevoX;
   jugador.y = nuevoY;
@@ -227,19 +240,6 @@
     zaidDialogIndex: 0,
     armasEntregadas: false,
     dialogoEntregaIndex: 0
-  }if (destino === "D") {
-  if (jugador.sala === 0) {
-    jugador.sala = 1;
-    jugador.x = 5;
-    jugador.y = 6;
-  } else {
-    jugador.sala = 0;
-    jugador.x = 5;
-    jugador.y = 1;
-  }
-  renderizarMapa();
-  mostrarDialogo("Has cambiado de sala.");
-  return;
   };
   mostrarDialogo("");
   renderizarMapa();

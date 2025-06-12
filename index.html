@@ -93,26 +93,39 @@
 
 <script>
   // Mapa: cuadrado 9x7 con paredes #
-  let mapa = [
-    "#########",
-    "#.......#",
-    "#.......#",
-    "#...z...#",
-    "#.......#",
-    "#.......#",
-    "#########"
-  ];
+  let mapas = [
+  [ // Sala 0 (la actual)
+    "#####D#####",
+    "#         #",
+    "#         #",
+    "#    z    #",
+    "#         #",
+    "#         #",
+    "###########"
+  ],
+  [ // Sala 1 (nueva sala)
+    "###########",
+    "#         #",
+    "#         #",
+    "#         #",
+    "#         #",
+    "#         #",
+    "#####D#####"
+  ]
+];
 
   // Estado inicial del jugador
   let jugador = {
-    x: 4,
-    y: 5,
-    simbolo: "o",
-    vidas: 3,
-    zaidDialogIndex: 0,
-    armasEntregadas: false,
-    dialogoEntregaIndex: 0
-  };
+  x: 4,
+  y: 5,
+  sala: 0,
+  simbolo: "o",
+  vida: 50,
+  vidaMax: 50,
+  zaidDialogIndex: 0,
+  armasEntregadas: false,
+  dialogoEntregaIndex: 0
+};
 
   const mapaDiv = document.getElementById("mapa");
   const dialogoDiv = document.getElementById("dialogo");
@@ -129,32 +142,34 @@
 
   // Diálogos rotativos de Zaid luego de entregar armas
   const zaidDialogs = [
-    "Mano ya te di todo",
-    "Que quieres mano",
-    "Mano dejame",
-    "Mamaguevo"
-  ];
+  "Mano ya te di todo",
+  "Que quieres mano",
+  "Mano dejame",
+  "Mamaguevo",
+  "No puedo creer que de verdad te cogieras a tu prima hermano, siempre te la pasas jugando con eso pero creí que eras mitomano"
+];
 
   function mostrarDialogo(texto) {
     dialogoDiv.textContent = texto;
   }
 
   function renderizarMapa() {
-    let salida = "";
-    for (let y = 0; y < mapa.length; y++) {
-      for (let x = 0; x < mapa[y].length; x++) {
-        if (x === jugador.x && y === jugador.y) {
-          salida += jugador.simbolo;
-        } else {
-          salida += mapa[y][x];
-        }
+  let mapaActual = mapas[jugador.sala];
+  let salida = "";
+  for (let y = 0; y < mapaActual.length; y++) {
+    for (let x = 0; x < mapaActual[y].length; x++) {
+      if (x === jugador.x && y === jugador.y) {
+        salida += jugador.simbolo;
+      } else {
+        salida += mapaActual[y][x];
       }
-      salida += "\n";
     }
-    mapaDiv.textContent = salida;
-    vidasDiv.textContent = `Vidas: ${jugador.vidas}`;
+    salida += "\n";
   }
-
+  mapaDiv.textContent = salida;
+  vidasDiv.textContent = `Vida: ${jugador.vida}/${jugador.vidaMax}`;
+  }
+  
   function hablarConZaid() {
     if (!jugador.armasEntregadas) {
       // Mostrar diálogos secuenciales de entrega
@@ -173,44 +188,64 @@
   }
 
   function mover(dx, dy) {
-    const nuevoX = jugador.x + dx;
-    const nuevoY = jugador.y + dy;
+  const mapaActual = mapas[jugador.sala];
+  const nuevoX = jugador.x + dx;
+  const nuevoY = jugador.y + dy;
 
-    // Validar límites y paredes
-    if (nuevoY < 0 || nuevoY >= mapa.length) return;
-    if (nuevoX < 0 || nuevoX >= mapa[0].length) return;
-    if (mapa[nuevoY][nuevoX] === "#") return;
+  // Validar límites
+  if (nuevoY < 0 || nuevoY >= mapaActual.length) return;
+  if (nuevoX < 0 || nuevoX >= mapaActual[0].length) return;
 
-    // Interacción con NPC Zaid
-    if (mapa[nuevoY][nuevoX] === "z") {
-      hablarConZaid();
-      return;
-    }
+  const destino = mapaActual[nuevoY][nuevoX];
 
-    // Mover jugador
-    jugador.x = nuevoX;
-    jugador.y = nuevoY;
-    mostrarDialogo("");
-    renderizarMapa();
+  if (destino === "#") return;
+
+  // Interacción con Zaid
+  if (destino === "z") {
+    hablarConZaid();
+    return;
+  }
+
+  // Interacción con puerta D
+  
+
+  jugador.x = nuevoX;
+  jugador.y = nuevoY;
+  mostrarDialogo("");
+  renderizarMapa();
+  }
   }
 
   btnReiniciar.onclick = () => {
-    jugador = {
-      x: 4,
-      y: 5,
-      simbolo: "o",
-      vidas: 3,
-      zaidDialogIndex: 0,
-      armasEntregadas: false,
-      dialogoEntregaIndex: 0
-    };
-    mostrarDialogo("");
-    renderizarMapa();
+  jugador = {
+    x: 4,
+    y: 5,
+    sala: 0,
+    simbolo: "o",
+    vida: 50,
+    vidaMax: 50,
+    zaidDialogIndex: 0,
+    armasEntregadas: false,
+    dialogoEntregaIndex: 0
+  }if (destino === "D") {
+  if (jugador.sala === 0) {
+    jugador.sala = 1;
+    jugador.x = 5;
+    jugador.y = 6;
+  } else {
+    jugador.sala = 0;
+    jugador.x = 5;
+    jugador.y = 1;
+  }
+  renderizarMapa();
+  mostrarDialogo("Has cambiado de sala.");
+  return;
   };
+  mostrarDialogo("");
+  renderizarMapa();
+};
 
   // Renderizar inicial
-  renderizarMapa();
-</script>
-
-</body>
+  renderizarMapa();  
+</script>  </body>  
 </html>

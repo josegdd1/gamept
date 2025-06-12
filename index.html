@@ -8,54 +8,51 @@
   body {
     background: black;
     color: white;
-    font-family: monospace;
+    font-family: monospace, monospace;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 0; padding: 0;
-    user-select: none;
+    margin: 0;
+    height: 100vh;
+    justify-content: center;
   }
   #game {
     white-space: pre;
-    font-size: 1.4rem;
-    line-height: 1.4rem;
-    margin-top: 20px;
-    letter-spacing: 0.2rem;
+    font-size: 20px;
+    line-height: 1.2;
+    text-align: center;
+    user-select: none;
   }
   #dialogue {
-    max-width: 320px;
-    margin: 20px;
-    min-height: 4rem;
-    background: #222;
-    padding: 10px;
-    border-radius: 6px;
-    text-align: center;
+    margin: 10px 0;
+    min-height: 40px;
+  }
+  #status {
+    margin: 10px 0;
   }
   #controls {
     display: flex;
-    gap: 15px;
-    margin-top: 15px;
+    gap: 10px;
+    margin-bottom: 10px;
   }
   button {
-    font-family: monospace;
-    font-size: 1.2rem;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 6px;
-    background: #444;
+    background: #222;
+    border: 1px solid white;
     color: white;
+    padding: 8px 12px;
+    font-size: 18px;
+    border-radius: 6px;
     cursor: pointer;
     user-select: none;
   }
-  button:active {
-    background: #666;
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   #combat-options {
-    margin-top: 15px;
-  }
-  #status {
-    margin-top: 15px;
-    font-size: 1rem;
+    display: none;
+    gap: 10px;
+    margin-bottom: 10px;
   }
 </style>
 </head>
@@ -66,10 +63,9 @@
 <div id="game"></div>
 
 <div id="dialogue"></div>
-
 <div id="status"></div>
 
-<div id="combat-options" style="display:none;">
+<div id="combat-options">
   <button id="attack-btn">Espada</button>
   <button id="defend-btn">Escudo</button>
 </div>
@@ -84,63 +80,47 @@
 
 <script>
 (() => {
-  // --- Variables base ---
-  const gameEl = document.getElementById('game');
-  const dialogueEl = document.getElementById('dialogue');
-  const statusEl = document.getElementById('status');
-  const combatOptionsEl = document.getElementById('combat-options');
-  const attackBtn = document.getElementById('attack-btn');
-  const defendBtn = document.getElementById('defend-btn');
+  const gameEl = document.getElementById("game");
+  const dialogueEl = document.getElementById("dialogue");
+  const statusEl = document.getElementById("status");
+  const combatOptionsEl = document.getElementById("combat-options");
+  const attackBtn = document.getElementById("attack-btn");
+  const defendBtn = document.getElementById("defend-btn");
 
-  // Mapas de dos salas
+  // Mapa sala principal, tamaño 9x7, rodeado de #
   const sala1 = [
     "#########",
     "#       #",
     "#   z   #",
+    "#       #",
     "#   o   #",
     "#       #",
-    "#   ^   #",
     "#########"
   ];
 
+  // Mapa sala 2 (accesible por puerta arriba en sala1)
   const sala2 = [
     "#########",
-    "#   ^   #",
     "#       #",
     "#   R   #",
     "#       #",
     "#       #",
+    "#       #",
     "#########"
   ];
 
-  // Estados y configuración
-  let currentSala = 1;
-  let map = [...sala1];
-  let playerPos = {x:4, y:3}; // Sala 1 posición o
-  let dialogueQueue = [];
-  let dialogueIndex = 0;
-  let inDialogue = false;
-  let inCombat = false;
-  let playerHasShieldNextTurn = false;
+  let currentMap = sala1.map(row => row.split(""));
+  let currentRoom = 1;
 
-  // Vidas y combate
-  const playerMaxHp = 50;
-  let playerHp = playerMaxHp;
+  // Posición jugador
+  let playerX = 4;
+  let playerY = 4;
 
-  const roibertMaxHp = 75;
-  let roibertHp = roibertMaxHp;
+  // NPC diálogos
+  const zaidDialogues = ["Zaid: Mano"];
+  let zaidDialogueIndex = 0;
 
-  let playerDefending = false;
-
-  // Diálogos NPC Zaid
-  const zaidDialogues = [
-    "Zaid: Mano, toma esto.\n*Has recibido una espada, un escudo y a Luis Mendez*",
-    "La espada sirve para atacar a los cabros.\nAtaque: 5-10 (aleatorio)",
-    "El escudo te permite defenderte de los cabros.\nDefensa: 5-10 (aleatorio para reducir daño siguiente turno)",
-    "Luis Mendez.\nDaño: 0-50\nLuis Mendez reirá con un \"Je\". El daño depende del largo del \"Je\"."
-  ];
-
-  // Diálogos Roibert antes de combate
+  // Roibert diálogos
   const roibertDialogues = [
     "tu acaso eres como es que se llama shisui?",
     "no me acuerdo cómo es ese mamaguevo de Naruto",
@@ -153,224 +133,162 @@
     "un busto no mano",
     "mamaguevo"
   ];
+  let roibertDialogueIndex = 0;
 
-  let roibertDialogIndex = 0;
+  // Estado combate
+  let inCombat = false;
 
-  // Diálogo rotativo de Zaid tras entrega armas (simple para futuro)
-  const zaidPostDialogues = [
-    "Mano ya te di todo",
-    "Que quieres mano",
-    "Mano dejame",
-    "Mamaguevo"
-  ];
-  let zaidPostIndex = 0;
+  // Vida jugador y enemigo
+  const playerMaxHp = 50;
+  let playerHp = playerMaxHp;
+  const roibertMaxHp = 75;
+  let roibertHp = roibertMaxHp;
 
-  // Estado diálogo Zaid post armas
-  let zaidDeliveredWeapons = false;
+  // Defensa escudo
+  let playerDefending = false;
+  let playerHasShieldNextTurn = 0;
 
-  // Renderizar el mapa
+  // Renderizar mapa en el div
   function renderMap() {
-    // Crear una copia para pintar el jugador y NPC
-    let renderArr = map.map(row => row.split(''));
-
-    // Colocar jugador
-    renderArr[playerPos.y][playerPos.x] = 'o';
-
-    // Para NPC Zaid y Roibert se mantienen en el mapa según sala
-    // ya están en mapa inicial
-
-    gameEl.textContent = renderArr.map(row => row.join('')).join('\n');
+    const mapCopy = currentMap.map(row => [...row]);
+    mapCopy[playerY][playerX] = "o";
+    let text = "";
+    for (let row of mapCopy) {
+      text += row.join("") + "\n";
+    }
+    gameEl.textContent = text;
   }
 
-  // Mostrar diálogo en el cuadro
-  function showDialogue(text, callback) {
-    inDialogue = true;
+  // Mostrar diálogo
+  function showDialogue(text) {
     dialogueEl.textContent = text;
-    dialogueIndex++;
-    function next() {
-      if (dialogueIndex < dialogueQueue.length) {
-        dialogueEl.textContent = dialogueQueue[dialogueIndex];
-      } else {
-        inDialogue = false;
-        dialogueEl.textContent = '';
-        dialogueIndex = 0;
-        dialogueQueue = [];
-        if (callback) callback();
-      }
-    }
-    dialogueEl.onclick = () => {
-      if (inDialogue) {
-        next();
-      }
-    };
   }
 
-  // Función para avanzar diálogo uno a uno (sin click solo enter tecla)
-  function nextDialogue(callback) {
-    if (dialogueIndex < dialogueQueue.length) {
-      dialogueEl.textContent = dialogueQueue[dialogueIndex];
-      dialogueIndex++;
-    } else {
-      inDialogue = false;
-      dialogueEl.textContent = '';
-      dialogueIndex = 0;
-      dialogueQueue = [];
-      if (callback) callback();
-    }
-  }
-
-  // Mostrar status (vidas)
+  // Mostrar estado vidas
   function showStatus() {
-    if(inCombat){
-      statusEl.textContent = `Vida jugador: ${playerHp}/${playerMaxHp}  |  Vida Roibert: ${roibertHp}/${roibertMaxHp}`;
-    } else {
-      statusEl.textContent = '';
-    }
+    statusEl.textContent = `Vida: ${playerHp}/${playerMaxHp}` + (inCombat ? ` | Roibert: ${roibertHp}/${roibertMaxHp}` : "");
   }
 
   // Reiniciar juego
   function resetGame() {
-    currentSala = 1;
-    map = [...sala1];
-    playerPos = {x:4, y:3};
+    inCombat = false;
+    currentRoom = 1;
     playerHp = playerMaxHp;
     roibertHp = roibertMaxHp;
     playerDefending = false;
-    playerHasShieldNextTurn = false;
-    zaidDeliveredWeapons = false;
-    zaidPostIndex = 0;
-    roibertDialogIndex = 0;
-    inDialogue = false;
-    inCombat = false;
-    combatOptionsEl.style.display = 'none';
-    dialogueEl.textContent = '';
-    statusEl.textContent = '';
+    playerHasShieldNextTurn = 0;
+    zaidDialogueIndex = 0;
+    roibertDialogueIndex = 0;
+    currentMap = sala1.map(row => row.split(""));
+    playerX = 4;
+    playerY = 4;
+    combatOptionsEl.style.display = "none";
+    showDialogue("Bienvenido a La Hermandad: El juego. Habla con Zaid (z) y muévete con las flechas.");
+    showStatus();
     renderMap();
   }
 
-  // Mover jugador (control y límites)
+  // Mover jugador
   function movePlayer(dx, dy) {
-    if(inDialogue || inCombat) return;
+    if (inCombat) return; // No se puede mover en combate
 
-    const newX = playerPos.x + dx;
-    const newY = playerPos.y + dy;
+    const newX = playerX + dx;
+    const newY = playerY + dy;
 
-    // Limitar dentro del mapa
-    if(newY < 0 || newY >= map.length) return;
-    if(newX < 0 || newX >= map[0].length) return;
+    if (newY < 0 || newY >= currentMap.length || newX < 0 || newX >= currentMap[0].length) return;
 
-    // Revisar que no choque con paredes (#)
-    if(map[newY][newX] === '#') return;
+    const targetCell = currentMap[newY][newX];
 
-    // Actualizar posición
-    playerPos.x = newX;
-    playerPos.y = newY;
+    if (targetCell === "#") return; // Pared
 
-    // Revisar eventos según sala y posición
-    if(currentSala === 1){
-      if(map[newY][newX] === 'z'){
-        // NPC Zaid diálogo
-        if(!zaidDeliveredWeapons){
-          dialogueQueue = zaidDialogues;
-          showDialogue(dialogueQueue, () => {
-            zaidDeliveredWeapons = true;
-            zaidPostIndex = 0;
-          });
-        } else {
-          // Diálogos post armas
-          dialogueEl.textContent = zaidPostDialogues[zaidPostIndex];
-          zaidPostIndex = (zaidPostIndex + 1) % zaidPostDialogues.length;
-        }
-      } else if(map[newY][newX] === '^') {
-        // Ir a sala 2
-        currentSala = 2;
-        map = [...sala2];
-        playerPos = {x:4, y:5};
-        renderMap();
-        dialogueEl.textContent = 'Entraste a la nueva sala...';
-      }
-    } else if(currentSala === 2){
-      if(map[newY][newX] === 'R'){
-        // Iniciar diálogo Roibert y combate
-        if(!inCombat && !inDialogue){
-          startRoibertDialogue();
-        }
-      } else if(map[newY][newX] === '^'){
-        // Regresar sala 1
-        currentSala = 1;
-        map = [...sala1];
-        playerPos = {x:4, y:4};
-        renderMap();
-        dialogueEl.textContent = 'Regresaste a la sala anterior.';
-      }
+    // Verificar puerta arriba sala 1
+    if (currentRoom === 1 && newY === 0 && targetCell === " ") {
+      // Cambiar a sala 2
+      currentRoom = 2;
+      currentMap = sala2.map(row => row.split(""));
+      playerX = 4;
+      playerY = 6; // Aparece abajo
+      showDialogue("Entraste a la nueva sala.");
+      renderMap();
+      showStatus();
+      return;
     }
 
+    // Volver sala1 si en sala2 va abajo en puerta
+    if (currentRoom === 2 && newY === currentMap.length - 1 && targetCell === " ") {
+      currentRoom = 1;
+      currentMap = sala1.map(row => row.split(""));
+      playerX = 4;
+      playerY = 1; // Aparece arriba
+      showDialogue("Regresaste a la sala principal.");
+      renderMap();
+      showStatus();
+      return;
+    }
+
+    // Mover
+    playerX = newX;
+    playerY = newY;
     renderMap();
-  }
 
-  // Roibert diálogo secuencial para activar combate
-  function startRoibertDialogue(){
-    dialogueQueue = [...roibertDialogues];
-    dialogueIndex = 0;
-    inDialogue = true;
-    combatOptionsEl.style.display = 'none';
-    dialogueEl.textContent = dialogueQueue[dialogueIndex];
-    dialogueIndex++;
-
-    dialogueEl.onclick = () => {
-      if(!inDialogue) return;
-      if(dialogueIndex < dialogueQueue.length){
-        dialogueEl.textContent = dialogueQueue[dialogueIndex];
-        dialogueIndex++;
+    // Interacciones
+    if (currentRoom === 1 && targetCell === "z") {
+      // Hablar con Zaid
+      showDialogue(zaidDialogues[zaidDialogueIndex]);
+      zaidDialogueIndex = (zaidDialogueIndex + 1) % zaidDialogues.length;
+    } else if (currentRoom === 2 && targetCell === "R") {
+      // Hablar con Roibert
+      if (roibertDialogueIndex < roibertDialogues.length) {
+        showDialogue(roibertDialogues[roibertDialogueIndex]);
+        roibertDialogueIndex++;
       } else {
-        // Terminar diálogo iniciar combate
-        inDialogue = false;
-        dialogueEl.textContent = '';
-        // Continúa desde donde quedó
-
+        showDialogue("¡Comienza el combate!");
         startCombat();
       }
-    };
+    } else {
+      showDialogue("");
+    }
   }
 
-  // Función para iniciar el combate
+  // Inicio combate
   function startCombat() {
     inCombat = true;
     playerHp = playerMaxHp;
     roibertHp = roibertMaxHp;
     playerDefending = false;
-    playerHasShieldNextTurn = false;
+    playerHasShieldNextTurn = 0;
     showStatus();
     dialogueEl.textContent = "¡Comienza el combate! Elige: Espada o Escudo.";
     combatOptionsEl.style.display = "flex";
-
-    // Botones combate habilitados
-    attackBtn.disabled = false;
-    defendBtn.disabled = false;
   }
 
-  // Ataque del jugador
+  // Mostrar estado en combate
+  function showStatus() {
+    if(inCombat) {
+      statusEl.textContent = `Vida jugador: ${playerHp}/${playerMaxHp} | Vida Roibert: ${roibertHp}/${roibertMaxHp}`;
+    } else {
+      statusEl.textContent = `Vida jugador: ${playerHp}/${playerMaxHp}`;
+    }
+  }
+
+  // Ataque jugador
   function playerAttack() {
     if(!inCombat) return;
 
     combatOptionsEl.style.display = "none";
 
-    // Daño aleatorio entre 5 y 10
-    const damage = Math.floor(Math.random() * 6) + 5;
+    const damage = Math.floor(Math.random() * 6) + 5; // 5-10 daño
 
-    // Restar daño a Roibert
     roibertHp -= damage;
-    if(roibertHp < 0) roibertHp = 0;
+    if (roibertHp < 0) roibertHp = 0;
 
-    dialogueEl.textContent = `Atacaste con espada y causaste ${damage} de daño.`;
+    showDialogue(`Atacaste con espada y causaste ${damage} de daño.`);
     showStatus();
 
-    // Prepara para defensa Roibert en su turno
     playerDefending = false;
 
     setTimeout(() => {
-      if(roibertHp <= 0){
-        // Ganaste
+      if (roibertHp <= 0) {
         endCombat(true);
       } else {
         roibertTurn();
@@ -378,84 +296,10 @@
     }, 1500);
   }
 
-  // Defensa del jugador (prepara escudo para el siguiente ataque de Roibert)
+  // Defensa jugador
   function playerDefend() {
     if(!inCombat) return;
 
     combatOptionsEl.style.display = "none";
 
-    // Escudo protege de 5 a 10 daño el siguiente turno
-    playerHasShieldNextTurn = Math.floor(Math.random() * 6) + 5;
-
-    dialogueEl.textContent = `Te preparaste con escudo, bloquearás hasta ${playerHasShieldNextTurn} de daño en el próximo ataque.`;
-    showStatus();
-
-    // Prepara para defensa Roibert en su turno
-    playerDefending = true;
-
-    setTimeout(() => {
-      roibertTurn();
-    }, 1500);
-  }
-
-  // Turno de Roibert atacando
-  function roibertTurn() {
-    // Daño aleatorio entre 10 y 15
-    let damage = Math.floor(Math.random() * 6) + 10;
-
-    // Si jugador usó escudo, reducir daño
-    if(playerDefending && playerHasShieldNextTurn > 0){
-      const blocked = Math.min(damage, playerHasShieldNextTurn);
-      damage -= blocked;
-      dialogueEl.textContent = `Roibert atacó con fuerza ${damage + blocked}. Escudo bloqueó ${blocked} daño.`;
-      playerHasShieldNextTurn = 0;
-    } else {
-      dialogueEl.textContent = `Roibert atacó con fuerza ${damage}.`;
-    }
-
-    // Restar daño a jugador
-    playerHp -= damage;
-    if(playerHp < 0) playerHp = 0;
-
-    showStatus();
-
-    setTimeout(() => {
-      if(playerHp <= 0){
-        // Perdiste
-        endCombat(false);
-      } else {
-        dialogueEl.textContent = "Tu turno: elige Espada o Escudo.";
-        combatOptionsEl.style.display = "flex";
-      }
-    }, 1500);
-  }
-
-  // Terminar combate: victoria o derrota
-  function endCombat(won) {
-    inCombat = false;
-    combatOptionsEl.style.display = "none";
-
-    if(won){
-      dialogueEl.textContent = 'Luis Mendez: "God mano"';
-    } else {
-      dialogueEl.textContent = 'Roibert: "*Manda foto semi-desnudo*"';
-    }
-
-    showStatus();
-  }
-
-  // --- Eventos botones ---
-  document.getElementById('up-btn').onclick = () => movePlayer(0,-1);
-  document.getElementById('down-btn').onclick = () => movePlayer(0,1);
-  document.getElementById('left-btn').onclick = () => movePlayer(-1,0);
-  document.getElementById('right-btn').onclick = () => movePlayer(1,0);
-
-  document.getElementById('reset-btn').onclick = () => resetGame();
-
-  attackBtn.onclick = () => playerAttack();
-  defendBtn.onclick = () => playerDefend();
-
-  // Inicializar juego
-  resetGame();
-
-})();
+    playerHas

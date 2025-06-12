@@ -104,7 +104,7 @@ let mapas = [
     
   // === Variables y definición del enemigo Roibert ===  
   
-let enCombate = false;  
+let enCombate = true;  
 let turnoJugador = true;  
 let enemigoDerrotado = localStorage.getItem("roibertDerrotado") === "true";  
   
@@ -217,7 +217,7 @@ function mover(dx, dy) {
     return;  
   }  
   
-  if (destino === "D") {  
+  if (destino === "U") {  
     if (jugador.sala === 0) {  
       jugador.sala = 1;  
       jugador.x = 5;  
@@ -254,7 +254,7 @@ function mover(dx, dy) {
 }  
   
 function usarEspada() {  
-  let critico = Math.random() < 0.2; // 20% de probabilidad  
+  let critico = Math.random() < 0.05; // 20% de probabilidad  
   let daño = critico ? 10 : Math.floor(Math.random() * 5) + 1;  
   
   enemigoRoibert.vida -= daño;  

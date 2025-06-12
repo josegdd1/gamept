@@ -76,19 +76,21 @@
 </div>
 
 <script>
-  // Mapa inicial: '.' suelo, '#' pared, 'z' NPC Zaid
+  // Mapa más grande: '.' suelo, '#' pared, 'z' NPC Zaid
   let mapa = [
-    "#####",
-    "#...#",
-    "#.z.#",
-    "#...#",
-    "#####"
+    "#########",
+    "#.......#",
+    "#.......#",
+    "#...z...#",
+    "#.......#",
+    "#.......#",
+    "#.......#"
   ];
 
-  // Cargar jugador o iniciar en el centro del mapa
+  // Cargar jugador o iniciar en el centro abajo
   let jugador = JSON.parse(localStorage.getItem('jugador')) || {
-    x: 2,
-    y: 3,
+    x: 4,
+    y: 5,
     simbolo: "o",
     tieneArmas: false,
     zaidDialogIndex: 0
@@ -162,7 +164,6 @@
           "Luis Mendez.\nDaño: 0-50\nLuis Mendez reirá con un \"Je\". El daño infligido dependerá de lo largo que sea el \"Je\"."
         ]).then(() => {
           jugador.tieneArmas = true;
-          jugador.simbolo = "^o[)";
           jugador.zaidDialogIndex = 0;
           guardar();
           renderizarMapa();

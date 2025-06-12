@@ -81,20 +81,17 @@
   <button onclick="mover(-1, -1)" disabled></button>
   <button onclick="mover(0, -1)">↑</button>
   <button onclick="mover(1, -1)" disabled></button>
-
   <button onclick="mover(-1, 0)">←</button>
   <button disabled>o</button>
   <button onclick="mover(1, 0)">→</button>
-
   <button onclick="mover(-1, 1)" disabled></button>
   <button onclick="mover(0, 1)">↓</button>
   <button onclick="mover(1, 1)" disabled></button>
 </div>
 
 <script>
-  // Mapa: cuadrado 9x7 con paredes #
-  let mapas = [
-  [ // Sala 0 (la actual)
+let mapas = [
+  [
     "#####D#####",
     "#         #",
     "#         #",
@@ -103,7 +100,7 @@
     "#         #",
     "###########"
   ],
-  [ // Sala 1 (nueva sala)
+  [
     "###########",
     "#         #",
     "#         #",
@@ -114,8 +111,7 @@
   ]
 ];
 
-  // Estado inicial del jugador
-  let jugador = {
+let jugador = cargarJuego() || {
   x: 4,
   y: 5,
   sala: 0,
@@ -127,21 +123,14 @@
   dialogoEntregaIndex: 0
 };
 
-  const mapaDiv = document.getElementById("mapa");
-  const dialogoDiv = document.getElementById("dialogo");
-  const vidasDiv = document.getElementById("vidas");
-  const btnReiniciar = document.getElementById("btn-reiniciar");
+const entregaArmasDialogs = [
+  "Zaid: Mano, toma esto.\n*Has recibido una espada, un escudo y a Luis Méndez*",
+  "La espada sirve para atacar a los cabros.\nAtaque: 1-5\nAtaque crítico: 10\nEl ataque será aleatorio, y el ataque crítico tiene una probabilidad menor de ocurrir.",
+  "El escudo te permite defenderte de los cabros.\nDefensa: 1-10\nLa defensa del escudo será aleatoria.",
+  "Luis Méndez.\nDaño: 0-50\nLuis Méndez reirá con un \"Je\".\nEl daño infligido dependerá de lo largo que sea el \"Je\"."
+];
 
-  // Diálogos de entrega armas (se muestran en secuencia)
-  const entregaArmasDialogs = [
-    "Zaid: Mano, toma esto.\n*Has recibido una espada, un escudo y a Luis Méndez*",
-    "La espada sirve para atacar a los cabros.\nAtaque: 1-5\nAtaque crítico: 10\nEl ataque será aleatorio, y el ataque crítico tiene una probabilidad menor de ocurrir.",
-    "El escudo te permite defenderte de los cabros.\nDefensa: 1-10\nLa defensa del escudo será aleatoria.",
-    "Luis Méndez.\nDaño: 0-50\nLuis Méndez reirá con un \"Je\".\nEl daño infligido dependerá de lo largo que sea el \"Je\"."
-  ];
-
-  // Diálogos rotativos de Zaid luego de entregar armas
-  const zaidDialogs = [
+const zaidDialogs = [
   "Mano ya te di todo",
   "Que quieres mano",
   "Mano dejame",
@@ -149,87 +138,91 @@
   "No puedo creer que de verdad te cogieras a tu prima hermano, siempre te la pasas jugando con eso pero creí que eras mitomano"
 ];
 
-  function mostrarDialogo(texto) {
-    dialogoDiv.textContent = texto;
-  }
+const mapaDiv = document.getElementById("mapa");
+const dialogoDiv = document.getElementById("dialogo");
+const vidasDiv = document.getElementById("vidas");
+const btnReiniciar = document.getElementById("btn-reiniciar");
 
-  function renderizarMapa() {
+function guardarJuego() {
+  localStorage.setItem("progresoHermandad", JSON.stringify(jugador));
+}
+
+function cargarJuego() {
+  const data = localStorage.getItem("progresoHermandad");
+  return data ? JSON.parse(data) : null;
+}
+
+function mostrarDialogo(texto) {
+  dialogoDiv.textContent = texto;
+}
+
+function renderizarMapa() {
   let mapaActual = mapas[jugador.sala];
   let salida = "";
   for (let y = 0; y < mapaActual.length; y++) {
     for (let x = 0; x < mapaActual[y].length; x++) {
-      if (x === jugador.x && y === jugador.y) {
-        salida += jugador.simbolo;
-      } else {
-        salida += mapaActual[y][x];
-      }
+      salida += (x === jugador.x && y === jugador.y) ? jugador.simbolo : mapaActual[y][x];
     }
     salida += "\n";
   }
   mapaDiv.textContent = salida;
   vidasDiv.textContent = `Vida: ${jugador.vida}/${jugador.vidaMax}`;
-  }
-  
-  function hablarConZaid() {
-    if (!jugador.armasEntregadas) {
-      // Mostrar diálogos secuenciales de entrega
-      mostrarDialogo(entregaArmasDialogs[jugador.dialogoEntregaIndex]);
-      jugador.dialogoEntregaIndex++;
-      if (jugador.dialogoEntregaIndex >= entregaArmasDialogs.length) {
-        jugador.armasEntregadas = true;
-        jugador.dialogoEntregaIndex = 0;
-        jugador.simbolo = "o"; // Aquí dejamos que siga siendo "o" sin armas visibles
-      }
-    } else {
-      // Diálogos rotativos normales
-      mostrarDialogo("Zaid: " + zaidDialogs[jugador.zaidDialogIndex]);
-      jugador.zaidDialogIndex = (jugador.zaidDialogIndex + 1) % zaidDialogs.length;
-    }
-  }
+}
 
-  function mover(dx, dy) {
+function hablarConZaid() {
+  if (!jugador.armasEntregadas) {
+    mostrarDialogo(entregaArmasDialogs[jugador.dialogoEntregaIndex]);
+    jugador.dialogoEntregaIndex++;
+    if (jugador.dialogoEntregaIndex >= entregaArmasDialogs.length) {
+      jugador.armasEntregadas = true;
+      jugador.dialogoEntregaIndex = 0;
+    }
+  } else {
+    mostrarDialogo("Zaid: " + zaidDialogs[jugador.zaidDialogIndex]);
+    jugador.zaidDialogIndex = (jugador.zaidDialogIndex + 1) % zaidDialogs.length;
+  }
+  guardarJuego();
+}
+
+function mover(dx, dy) {
   const mapaActual = mapas[jugador.sala];
   const nuevoX = jugador.x + dx;
   const nuevoY = jugador.y + dy;
 
-  // Validar límites
-  if (nuevoY < 0 || nuevoY >= mapaActual.length) return;
-  if (nuevoX < 0 || nuevoX >= mapaActual[0].length) return;
+  if (nuevoY < 0 || nuevoY >= mapaActual.length || nuevoX < 0 || nuevoX >= mapaActual[0].length) return;
 
   const destino = mapaActual[nuevoY][nuevoX];
-
   if (destino === "#") return;
 
-  // Interacción con Zaid
   if (destino === "z") {
     hablarConZaid();
     return;
   }
 
-  // Interacción con puerta D
   if (destino === "D") {
-  if (jugador.sala === 0) {
-    jugador.sala = 1;
-    jugador.x = 5;
-    jugador.y = 6;
-  } else {
-    jugador.sala = 0;
-    jugador.x = 5;
-    jugador.y = 1;
-  }
-  renderizarMapa();
-  mostrarDialogo("Has cambiado de sala.");
-  return;
+    if (jugador.sala === 0) {
+      jugador.sala = 1;
+      jugador.x = 5;
+      jugador.y = 6;
+    } else {
+      jugador.sala = 0;
+      jugador.x = 5;
+      jugador.y = 1;
+    }
+    renderizarMapa();
+    mostrarDialogo("Has cambiado de sala.");
+    guardarJuego();
+    return;
   }
 
   jugador.x = nuevoX;
   jugador.y = nuevoY;
   mostrarDialogo("");
   renderizarMapa();
-  }
-  }
+  guardarJuego();
+}
 
-  btnReiniciar.onclick = () => {
+btnReiniciar.onclick = () => {
   jugador = {
     x: 4,
     y: 5,
@@ -243,9 +236,11 @@
   };
   mostrarDialogo("");
   renderizarMapa();
+  guardarJuego();
 };
 
-  // Renderizar inicial
-  renderizarMapa();  
-</script>  </body>  
+renderizarMapa();
+</script>
+
+</body>
 </html>

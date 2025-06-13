@@ -300,35 +300,44 @@
 
     // Función para el turno del enemigo (Roibert)
     function turnoEnemigo() {
-      if (!enCombate) return;
-      let ataques = Object.keys(enemigoRoibert.ataques);
-      let ataque = ataques[Math.floor(Math.random() * ataques.length)];
-      enemigoRoibert.ataqueActual = ataque;
-      let daño = enemigoRoibert.ataques[ataque]();
-      daño -= enemigoRoibert.defensa || 0;
-      if (daño < 0) daño = 0;
-      jugador.vida -= daño;
-      enemigoRoibert.defensa = 0;
-      mostrarDialogo(`Roibert usó "${ataque}".\nDaño: ${daño}\nTu vida: ${jugador.vida}/${jugador.vidaMax}`);
-      revisarResultado();
+  if (!enCombate || enemigoRoibert.vida <= 0) return;
+
+  const ataquesDisponibles = Object.keys(enemigoRoibert.ataques);
+  const ataque = ataquesDisponibles[Math.floor(Math.random() * ataquesDisponibles.length)];
+  const dañoBase = enemigoRoibert.ataques[ataque];
+  let daño = dañoBase;
+
+  if (jugador.defendiendo) {
+    daño = Math.max(daño - jugador.defensa, 0);
+    jugador.defendiendo = false;
+  }
+
+  jugador.vida -= daño;
+  enemigoRoibert.defensa = 0;
+
+  mostrarDialogo(`Roibert usó ${ataque}. Daño: ${daño}\nTu vida: ${jugador.vida}/${jugador.vidaMax}`);
+
+  revisarResultado();
+
+  if (jugador.vida > 0 && enemigoRoibert.vida > 0) {
+    setTimeout(() => {
       turnoJugador = true;
+      renderizarMapa();
+    }, 2000); 
+  }
     }
 
     // Función para revisar el resultado del combate
     function revisarResultado() {
-      if (enemigoRoibert.vida <= 0) {
-        enemigoRoibert.vida = 0;
-        mostrarDialogo("¡Has derrotado a Roibert!");
-        enCombate = false;
-        enemigoDerrotado = true;
-        localStorage.setItem("roibertDerrotado", "true");
-        dialogoDiv.innerHTML += "<br><br><button onclick='continuarJuego()'>Continuar</button>";
-      } else if (jugador.vida <= 0) {
-        jugador.vida = 0;
-        mostrarDialogo("Has sido derrotado por Roibert... Fin del juego.");
-        enCombate = false;
-        dialogoDiv.innerHTML += "<br><br><button onclick='reiniciarJuego()'>Reiniciar</button>";
-      }
+  if (enemigoRoibert.vida <= 0) {
+    mostrarDialogo("¡Has derrotado a Roibert!");
+    enCombate = false;
+    enemigoDerrotado = true;
+    localStorage.setItem("roibertDerrotado", "true");
+  } else if (jugador.vida <= 0) {
+    mostrarDialogo("Has sido derrotado. Reinicia el juego.");
+    enCombate = false;
+  }
     }
 
     // Función para continuar la aventura tras el combate

@@ -95,7 +95,7 @@ let mapas = [
     "###########",  
     "#         #",  
     "#         #",  
-    "#         #",  
+    "#    r    #",  
     "#         #",  
     "#         #",  
     "#####U#####"  
@@ -209,7 +209,7 @@ function mover(dx, dy) {
     return;  
   }  
   
-  if (destino === "R" && !enemigoDerrotado) {  
+  if (destino === "r" && !enemigoDerrotado) {  
     jugador.x = nuevoX;  
     jugador.y = nuevoY;  
     renderizarMapa();  
@@ -245,7 +245,7 @@ function mover(dx, dy) {
   
   // Añadir botones de combate  
   dialogoDiv.innerHTML = `  
-    ¡Te enfrentas a Roibert!<br>  
+    tu acaso eres como es que se llama shisui no me acuerdo cómo es ese mamaguevo de Naruto que tiene como 30 cara no hagas eso mano eso no va bien habla claro y ya wn no puedes hace es... y de paso teniendo jeva mano o sea tú tú tienes la cara de piedra mano tu eres un totem una mierda así un busto no mano mamaguevo<br>  
     Vida de Roibert: ${enemigoRoibert.vida}<br><br>  
     <button onclick="usarEspada()">Espada</button>  
     <button onclick="usarEscudo()">Escudo</button>  
